@@ -7,12 +7,10 @@ Contributors: @ekemini-udofia (github)
 Depndencies/Requirements:
 
 Python Libraries:
-              Pillow - pip install pillow
-              moviepy - pip install moviepy==1.0.3
-              pygame - pip install pygame
-              tkinter - inbuilt
+              PyQt5 - pip install PyQt5
+              
 
-Copmpilation: 
+Compilation: 
               To compile the python script to an executable, install auto-py-to-exe
               - pip install auto-py-to-exe
               Select the main.py script in the auto-py-to-exe menu.
@@ -24,82 +22,119 @@ Code Functions:
 
               
 
-For further ideas/contributions feel free to reach out via email - ekeminiabasiudofia@gmail.com
+For further ideas/contributions feel free to reach out via email - ekeminiabasiudofia@gmail.com or charleyndubest@gmail.com
 
 
 
 """
 
 
-import tkinter as tk
-from tkinter import Button, Frame, Canvas, filedialog
-from PIL import Image, ImageTk
-import moviepy.editor as mp
-
-# Global variable for the video object
-video = None
-
-# command for the open button; it gets the path of the video file to play through the askopenfilename =dialog
-def open_video():
-    global video
-    file_path = filedialog.askopenfilename(
-        title="Open Video File",
-        filetypes=[("Video Files", "*.mp4 *.avi *.mkv *.mov")]
-    )
-    if file_path:
-        # Load the selected video
-        video = mp.VideoFileClip(file_path)
-        play_video()
-# command for the play nuttons; it starts the video
-def play_video():
-    if not video:
-        return  # Do nothing if no video is loaded
-
-    def update_frame(frame):
-        # Convert the frame to an image and display it on the canvas
-        frame_image = ImageTk.PhotoImage(image=Image.fromarray(frame))
-        canvas.create_image(0, 0, anchor=tk.NW, image=frame_image)
-        canvas.image = frame_image  # Keep a reference to avoid garbage collection
-
-    def render_video():
-        for frame in video.iter_frames(fps=24, dtype="uint8"):
-            update_frame(frame)
-            root.update_idletasks()
-            root.update()
-
-    render_video()
-
-def stop_video():
-    canvas.delete("all")  # Stop the video by clearing the canvas
-
-# Main tkinter window
-root = tk.Tk()
-root.iconbitmap("res/icon.ico")
-root.title("Media Player")
-root.geometry("800x600")  # Window size
-root.resizable(True, True)  # Allo window to be resizable
-
-# frame for the video display
-video_frame = Frame(root, bg="black")
-video_frame.pack(fill=tk.BOTH, expand=True)
-
-# the canvas for rendering the video
-canvas = Canvas(video_frame, bg="black")
-canvas.pack(fill=tk.BOTH, expand=True)
-
-# Frame for the controls
-control_frame = Frame(root, bg="gray")
-control_frame.pack(fill=tk.X)
-
-# Controls for the buttons
-open_button = Button(control_frame, text="Open", command=open_video)
-open_button.pack(side=tk.LEFT, padx=10, pady=10)
-
-play_button = Button(control_frame, text="Play", command=play_video)
-play_button.pack(side=tk.LEFT, padx=10, pady=10)
-
-stop_button = Button(control_frame, text="Stop", command=stop_video)
-stop_button.pack(side=tk.LEFT, padx=10, pady=10)
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QWidget, QAction, QFileDialog, QStyle, QSlider, QSizePolicy
+from PyQt5.QtGui import QIcon
+from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer
+from PyQt5.QtMultimediaWidgets import QVideoWidget
+from PyQt5.QtCore import Qt, QUrl
+import sys
 
 
-root.mainloop()
+class Window(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("PyPlayer")
+        self.setGeometry(700, 400, 500, 500)
+        self.setWindowIcon(QIcon("res\icon.ico"))
+
+        #--assign widgets--
+        self.media_player = QMediaPlayer(self)
+        self.vid_widget = QVideoWidget(self)
+        self.pause_play_btn = QPushButton(self)
+        self.duration_bar = QSlider(Qt.Horizontal)
+        self.hbox = QHBoxLayout(self)
+        self.vbox = QVBoxLayout(self)
+        self.label = QLabel(self)
+        self.widget = QWidget(self)
+
+
+
+        self.InitUI()
+
+
+    def InitUI(self):
+        #--setup toolbar--
+        self.open_btn = QAction(QIcon("res\open.png"), "Open", self)
+        self.toolbar = self.addToolBar("Toolbar")
+        self.toolbar.addAction(self.open_btn)
+        self.open_btn.triggered.connect(self.open_file)
+
+        self.exit_btn = QAction(QIcon("res\exit.png"), "exit", self)
+        self.toolbar.addAction(self.exit_btn)
+    
+        #--setup Pause/Play botton and duation bar--
+        self.pause_play_btn.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
+        self.pause_play_btn.setEnabled(False)
+        self.pause_play_btn.clicked.connect(self.Pause_Play_File)
+
+
+        self.duration_bar.setRange(0,0)
+        self.duration_bar.sliderMoved.connect(self.slider_change)
+
+        #--setup layout and label--
+        self.hbox.addWidget(self.pause_play_btn)
+        self.hbox.addWidget(self.duration_bar)
+
+        self.vbox.addWidget(self.vid_widget)
+        self.vbox.addLayout(self.hbox)
+        #central widgets
+        self.widget.setLayout(self.vbox)
+        self.setCentralWidget(self.widget)
+
+        self.label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum) #create sizepolicy label
+
+
+        #--set Outputs--
+        self.media_player.setVideoOutput(self.vid_widget)
+        #media payer signal
+        self.media_player.stateChanged.connect(self.Change_Play_State)
+        self.media_player.positionChanged.connect(self.slider_position)
+        self.media_player.durationChanged.connect(self.slider_duation)
+
+
+
+        
+
+    def open_file(self):
+        self.filename, _ = QFileDialog.getOpenFileName(self, "select media file", "", "Media Files(*.mp4 *.mp3 *.avi *.mkv *.wav)")
+        
+        if self.filename != '':
+            self.media_player.setMedia(QMediaContent(QUrl.fromLocalFile(self.filename)))
+            self.pause_play_btn.setEnabled(True)
+
+    def Pause_Play_File(self):
+        if self.media_player.state() == QMediaPlayer.PlayingState:
+            self.media_player.pause()
+        else:
+            self.media_player.play()
+
+    def Change_Play_State(self):
+        if self.media_player.state() == QMediaPlayer.PlayingState:
+            self.pause_play_btn.setIcon(self.style().standardIcon(QStyle.SP_MediaPause))
+        else:
+         self.pause_play_btn.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
+
+    def slider_position(self, position):
+        self.duration_bar.setValue(position)
+
+    def slider_duation(self, duration):
+        self.duration_bar.setRange(0, duration)
+
+    def slider_change(self, position):
+        self.media_player.setPosition(position)
+
+
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = Window()
+    window.show()
+    sys.exit(app.exec_())
