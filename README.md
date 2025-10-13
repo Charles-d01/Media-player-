@@ -143,10 +143,6 @@ PyPlayer/
 Contributions and ideas are welcome!
 Feel free to open an **issue** or submit a **pull request**.
 
-For discussions or suggestions, reach out via email:
-📧 **[ekeminiabasiudofia@gmail.com](mailto:ekeminiabasiudofia@gmail.com)**
-📧 **[charleyndubest@gmail.com](mailto:charleyndubest@gmail.com)**
-
 ---
 
 ## 🪪 License
